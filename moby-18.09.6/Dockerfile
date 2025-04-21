@@ -30,7 +30,7 @@ FROM golang:1.10.8 AS base
 ENV GO_VERSION 1.10.8
 # allow replacing httpredir or deb mirror
 ARG APT_MIRROR=deb.debian.org/debian
-RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+RUN sed -i "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
