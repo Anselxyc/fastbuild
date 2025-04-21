@@ -24,14 +24,23 @@
 # the case. Therefore, you don't have to disable it anymore.
 #
 
-#FROM golang:1.10.8 AS base
-FROM golang:1.17-bullseye AS base
-# FIXME(vdemeester) this is kept for other script depending on it to not fail right away
-# Remove this once the other scripts uses something else to detect the version
+# FROM golang:1.10.8 AS base
+# #FROM golang:1.17-bullseye AS base
+# # FIXME(vdemeester) this is kept for other script depending on it to not fail right away
+# # Remove this once the other scripts uses something else to detect the version
 # ENV GO_VERSION 1.10.8
 # # allow replacing httpredir or deb mirror
 # ARG APT_MIRROR=deb.debian.org/debian bullseye
 # RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+# 替换旧的 FROM 和 APT 设置
+FROM golang:1.17-bullseye AS base
+
+ENV GO_VERSION=1.17
+
+# 你可以设置自己的 APT_MIRROR，比如阿里云的：mirrors.aliyun.com
+ARG APT_MIRROR=deb.debian.org
+RUN sed -i "s|http://deb.debian.org|http://$APT_MIRROR|g" /etc/apt/sources.list && \
+	sed -i "s|http://security.debian.org|http://$APT_MIRROR|g" /etc/apt/sources.list
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
@@ -45,7 +54,7 @@ RUN apt-get update && apt-get install -y \
 	libcap-dev \
 	protobuf-compiler \
 	protobuf-c-compiler \
-	python3-protobuf \
+	python-protobuf \
 	&& mkdir -p /usr/src/criu \
 	&& curl -sSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz | tar -C /usr/src/criu/ -xz --strip-components=1 \
 	&& cd /usr/src/criu \
