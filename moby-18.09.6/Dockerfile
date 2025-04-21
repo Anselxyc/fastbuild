@@ -44,6 +44,9 @@ RUN sed -i "s|http://deb.debian.org|http://$APT_MIRROR|g" /etc/apt/sources.list 
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
+ENV CFLAGS="-Wno-error"
+ENV CPPFLAGS="-Wno-error"
+
 ENV CRIU_VERSION 3.6
 # Install dependency packages specific to criu
 RUN apt-get update && apt-get install -y \
