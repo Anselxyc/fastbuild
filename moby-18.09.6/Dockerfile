@@ -29,7 +29,7 @@ FROM golang:1.10.8 AS base
 # Remove this once the other scripts uses something else to detect the version
 ENV GO_VERSION 1.10.8
 # allow replacing httpredir or deb mirror
-ARG APT_MIRROR=deb.debian.org
+ARG APT_MIRROR=deb.debian.org/debian
 RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
 
 FROM base AS criu
@@ -63,14 +63,14 @@ RUN set -x \
 	&& git clone https://github.com/docker/distribution.git "$GOPATH/src/github.com/docker/distribution" \
 	&& (cd "$GOPATH/src/github.com/docker/distribution" && git checkout -q "$REGISTRY_COMMIT") \
 	&& GOPATH="$GOPATH/src/github.com/docker/distribution/Godeps/_workspace:$GOPATH" \
-		go build -buildmode=pie -o /build/registry-v2 github.com/docker/distribution/cmd/registry \
+	go build -buildmode=pie -o /build/registry-v2 github.com/docker/distribution/cmd/registry \
 	&& case $(dpkg --print-architecture) in \
-		amd64|ppc64*|s390x) \
-		(cd "$GOPATH/src/github.com/docker/distribution" && git checkout -q "$REGISTRY_COMMIT_SCHEMA1"); \
-		GOPATH="$GOPATH/src/github.com/docker/distribution/Godeps/_workspace:$GOPATH"; \
-			go build -buildmode=pie -o /build/registry-v2-schema1 github.com/docker/distribution/cmd/registry; \
-		;; \
-	   esac \
+	amd64|ppc64*|s390x) \
+	(cd "$GOPATH/src/github.com/docker/distribution" && git checkout -q "$REGISTRY_COMMIT_SCHEMA1"); \
+	GOPATH="$GOPATH/src/github.com/docker/distribution/Godeps/_workspace:$GOPATH"; \
+	go build -buildmode=pie -o /build/registry-v2-schema1 github.com/docker/distribution/cmd/registry; \
+	;; \
+	esac \
 	&& rm -rf "$GOPATH"
 
 
