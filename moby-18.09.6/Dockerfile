@@ -24,13 +24,14 @@
 # the case. Therefore, you don't have to disable it anymore.
 #
 
-FROM golang:1.10.8 AS base
+#FROM golang:1.10.8 AS base
+FROM golang:1.17-bullseye AS base
 # FIXME(vdemeester) this is kept for other script depending on it to not fail right away
 # Remove this once the other scripts uses something else to detect the version
-ENV GO_VERSION 1.10.8
-# allow replacing httpredir or deb mirror
-ARG APT_MIRROR=deb.debian.org/debian bullseye
-RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+# ENV GO_VERSION 1.10.8
+# # allow replacing httpredir or deb mirror
+# ARG APT_MIRROR=deb.debian.org/debian bullseye
+# RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
@@ -44,7 +45,7 @@ RUN apt-get update && apt-get install -y \
 	libcap-dev \
 	protobuf-compiler \
 	protobuf-c-compiler \
-	python-protobuf \
+	python3-protobuf \
 	&& mkdir -p /usr/src/criu \
 	&& curl -sSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz | tar -C /usr/src/criu/ -xz --strip-components=1 \
 	&& cd /usr/src/criu \
