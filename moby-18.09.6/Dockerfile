@@ -48,13 +48,13 @@ ENV CRIU_VERSION 3.6
 # Install dependency packages specific to criu
 RUN apt-get update && apt-get install -y \
 	libnet-dev \
-	libprotobuf-c0-dev \
+	libprotobuf-c-dev \
 	libprotobuf-dev \
 	libnl-3-dev \
 	libcap-dev \
 	protobuf-compiler \
 	protobuf-c-compiler \
-	python-protobuf \
+	python3-protobuf \
 	&& mkdir -p /usr/src/criu \
 	&& curl -sSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz | tar -C /usr/src/criu/ -xz --strip-components=1 \
 	&& cd /usr/src/criu \
