@@ -29,14 +29,15 @@ FROM golang:1.10.8 AS base
 # Remove this once the other scripts uses something else to detect the version
 ENV GO_VERSION 1.10.8
 # allow replacing httpredir or deb mirror
-ARG APT_MIRROR=deb.debian.org/debian
-RUN sed -i "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+ARG APT_MIRROR=archive.debian.org
+ARG SECURITY_MIRROR=archive.debian.org/security
+RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g; s|security.debian.org|$SECURITY_MIRROR|g" /etc/apt/sources.list
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
 ENV CRIU_VERSION 3.6
 # Install dependency packages specific to criu
-RUN apt-get update && apt-get install -y \
+RUN apt-get update -o Acquire::Check-Valid-Until=false && apt-get install -y \
 	libnet-dev \
 	libprotobuf-c0-dev \
 	libprotobuf-dev \
@@ -46,7 +47,7 @@ RUN apt-get update && apt-get install -y \
 	protobuf-c-compiler \
 	python-protobuf \
 	&& mkdir -p /usr/src/criu \
-	&& curl -sSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz | tar -C /usr/src/criu/ -xz --strip-components=1 \
+	&& curl -sSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz | tar -C /usr/src/criu -xz --strip-components=1 \
 	&& cd /usr/src/criu \
 	&& make \
 	&& make PREFIX=/build/ install-criu
@@ -59,6 +60,7 @@ FROM base AS registry
 ENV REGISTRY_COMMIT_SCHEMA1 ec87e9b6971d831f0eff752ddb54fb64693e51cd
 ENV REGISTRY_COMMIT 47a064d4195a9b56133891bbb13620c3ac83a827
 RUN set -x \
+	&& apt-get update -o Acquire::Check-Valid-Until=false \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/docker/distribution.git "$GOPATH/src/github.com/docker/distribution" \
 	&& (cd "$GOPATH/src/github.com/docker/distribution" && git checkout -q "$REGISTRY_COMMIT") \
@@ -72,7 +74,6 @@ RUN set -x \
 	;; \
 	esac \
 	&& rm -rf "$GOPATH"
-
 
 
 FROM base AS docker-py
@@ -168,7 +169,8 @@ RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 # TODO: Some of this is only really needed for testing, it would be nice to split this up
 FROM runtime-dev AS dev
-RUN groupadd -r docker
+RUN apt-get update -o Acquire::Check-Valid-Until=false && apt-get install -y \
+	RUN groupadd -r docker
 RUN useradd --create-home --gid docker unprivilegeduser
 # Let us use a .bashrc file
 RUN ln -sfv /go/src/github.com/docker/docker/.bashrc ~/.bashrc
