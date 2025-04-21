@@ -25,9 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # CRIU stage: build and install CRIU 3.6 with warnings disabled
 #################################################################
 FROM base AS criu
-
 ARG CRIU_VERSION=3.6
-# Disable -Werror to avoid build failures with newer GCC/glibc
 ENV CFLAGS="-Wno-error" CXXFLAGS="-Wno-error"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,7 +42,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& curl -fsSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz \
 	| tar -xzC /usr/src/criu --strip-components=1 \
 	&& cd /usr/src/criu \
-	&& make CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" \
+	# 手动预编译 descriptor.proto 为 .pb-c.h/.pb-c.c（这个是报错缺的）
+	&& protoc-c --c_out=. images/google/protobuf/descriptor.proto \
+	# 编译时加入当前路径（.）为 include 搜索目录，避免找不到 .pb-c.h 文件
+	&& make CFLAGS="${CFLAGS} -I." CXXFLAGS="${CXXFLAGS} -I." \
 	&& make PREFIX=/build install-criu
 
 #################################################################
