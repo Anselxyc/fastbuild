@@ -43,9 +43,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& mkdir -p /usr/src/criu /build \
 	&& curl -fsSL https://github.com/checkpoint-restore/criu/archive/v${CRIU_VERSION}.tar.gz \
 	| tar -xzC /usr/src/criu --strip-components=1 \
-	# Patch duplicate macro before build
-	&& sed -i '1i#ifndef FP_XSTATE_MAGIC2_SIZE\n#define FP_XSTATE_MAGIC2_SIZE sizeof(FP_XSTATE_MAGIC2)\n#endif' \
-	/usr/src/criu/compel/include/uapi/compel/asm/fpu.h \
 	&& cd /usr/src/criu \
 	&& make CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" \
 	&& make PREFIX=/build install-criu
