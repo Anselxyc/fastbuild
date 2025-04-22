@@ -29,8 +29,18 @@ FROM golang:1.10.8 AS base
 # Remove this once the other scripts uses something else to detect the version
 ENV GO_VERSION 1.10.8
 # allow replacing httpredir or deb mirror
-ARG APT_MIRROR=deb.debian.org
-RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+# ARG APT_MIRROR=deb.debian.org
+# RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
+
+ARG APT_MIRROR=archive.debian.org
+ARG SECURITY_MIRROR=archive.debian.org/debian-security
+# 更新sources.list以使用归档源
+RUN sed -i "s|http://deb.debian.org/debian|http://$APT_MIRROR/debian|g" /etc/apt/sources.list \
+	&& sed -i "s|http://security.debian.org/debian-security|http://$SECURITY_MIRROR|g" /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no] http://$APT_MIRROR/debian stretch main" > /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no] http://$APT_MIRROR/debian stretch-updates main" >> /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no] http://${SECURITY_MIRROR} stretch/updates main" >> /etc/apt/sources.list \
+	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until
 
 FROM base AS criu
 # Install CRIU for checkpoint/restore support
