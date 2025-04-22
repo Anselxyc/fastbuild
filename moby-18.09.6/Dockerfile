@@ -1,52 +1,20 @@
-# This file describes the standard way to build Docker, using docker
-#
-# Usage:
-#
-# # Use make to build a development environment image and run it in a container.
-# # This is slow the first time.
-# make BIND_DIR=. shell
-#
-# The following commands are executed inside the running container.
-
-# # Make a dockerd binary.
-# # hack/make.sh binary
-#
-# # Install dockerd to /usr/local/bin
-# # make install
-#
-# # Run unit tests
-# # hack/test/unit
-#
-# # Run tests e.g. integration, py
-# # hack/make.sh binary test-integration test-docker-py
-#
-# Note: AppArmor used to mess with privileged mode, but this is no longer
-# the case. Therefore, you don't have to disable it anymore.
-#
-
+# ====================== 基础阶段 ======================
 FROM golang:1.10.8 AS base
-# FIXME(vdemeester) this is kept for other script depending on it to not fail right away
-# Remove this once the other scripts uses something else to detect the version
 ENV GO_VERSION 1.10.8
-# allow replacing httpredir or deb mirror
-# ARG APT_MIRROR=deb.debian.org
-# RUN sed -ri "s/(httpredir|deb).debian.org/$APT_MIRROR/g" /etc/apt/sources.list
-
-ARG APT_MIRROR=archive.debian.org
+ARG APT_MIRROR=archive.debian.org/debian
 ARG SECURITY_MIRROR=archive.debian.org/debian-security
-# 更新sources.list以使用归档源
-RUN sed -i "s|http://deb.debian.org/debian|http://$APT_MIRROR/debian|g" /etc/apt/sources.list \
-	&& sed -i "s|http://security.debian.org/debian-security|http://$SECURITY_MIRROR|g" /etc/apt/sources.list \
-	&& echo "deb [check-valid-until=no] http://$APT_MIRROR/debian stretch main" > /etc/apt/sources.list \
-	&& echo "deb [check-valid-until=no] http://$APT_MIRROR/debian stretch-updates main" >> /etc/apt/sources.list \
-	&& echo "deb [check-valid-until=no] http://${SECURITY_MIRROR} stretch/updates main" >> /etc/apt/sources.list \
-	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until
 
+RUN echo "deb [check-valid-until=no] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
+	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until \
+	&& echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/10-no-auth
+
+# ====================== CRIU阶段 ====================== 
 FROM base AS criu
-# Install CRIU for checkpoint/restore support
 ENV CRIU_VERSION 3.6
-# Install dependency packages specific to criu
-RUN apt-get update && apt-get install -y \
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated \
 	libnet-dev \
 	libprotobuf-c0-dev \
 	libprotobuf-dev \
@@ -61,13 +29,13 @@ RUN apt-get update && apt-get install -y \
 	&& make \
 	&& make PREFIX=/build/ install-criu
 
+# ====================== Registry阶段 ======================
 FROM base AS registry
-# Install two versions of the registry. The first is an older version that
-# only supports schema1 manifests. The second is a newer version that supports
-# both. This allows integration-cli tests to cover push/pull with both schema1
-# and schema2 manifests.
 ENV REGISTRY_COMMIT_SCHEMA1 ec87e9b6971d831f0eff752ddb54fb64693e51cd
 ENV REGISTRY_COMMIT 47a064d4195a9b56133891bbb13620c3ac83a827
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated git ca-certificates
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/docker/distribution.git "$GOPATH/src/github.com/docker/distribution" \
@@ -83,20 +51,22 @@ RUN set -x \
 	esac \
 	&& rm -rf "$GOPATH"
 
-
-
+# ====================== Docker-Py阶段 ======================
 FROM base AS docker-py
-# Get the "docker-py" source so we can run their integration tests
 ENV DOCKER_PY_COMMIT 8b246db271a85d6541dc458838627e89c683e42f
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated git
 RUN git clone https://github.com/docker/docker-py.git /build \
 	&& cd /build \
 	&& git checkout -q $DOCKER_PY_COMMIT
 
-
-
+# ====================== Swagger阶段 ======================
 FROM base AS swagger
-# Install go-swagger for validating swagger.yaml
 ENV GO_SWAGGER_COMMIT c28258affb0b6251755d92489ef685af8d4ff3eb
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated git ca-certificates
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/go-swagger/go-swagger.git "$GOPATH/src/github.com/go-swagger/go-swagger" \
@@ -104,10 +74,11 @@ RUN set -x \
 	&& go build -o /build/swagger github.com/go-swagger/go-swagger/cmd/swagger \
 	&& rm -rf "$GOPATH"
 
-
+# ====================== Frozen-Images阶段 ======================
 FROM base AS frozen-images
-RUN apt-get update && apt-get install -y jq ca-certificates --no-install-recommends
-# Get useful and necessary Hub images so we can "docker load" locally instead of pulling
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated jq ca-certificates
 COPY contrib/download-frozen-image-v2.sh /
 RUN /download-frozen-image-v2.sh /build \
 	buildpack-deps:jessie@sha256:dd86dced7c9cd2a724e779730f0a53f93b7ef42228d4344b25ce9a42a1486251 \
@@ -115,80 +86,50 @@ RUN /download-frozen-image-v2.sh /build \
 	busybox:glibc@sha256:0b55a30394294ab23b9afd58fab94e61a923f5834fba7ddbae7f8e0c11ba85e6 \
 	debian:jessie@sha256:287a20c5f73087ab406e6b364833e3fb7b3ae63ca0eb3486555dc27ed32c6e60 \
 	hello-world:latest@sha256:be0cd392e45be79ffeffa6b05338b98ebb16c87b255f48e297ec7f98e123905c
-# See also ensureFrozenImagesLinux() in "integration-cli/fixtures_linux_daemon_test.go" (which needs to be updated when adding images to this list)
 
-# Just a little hack so we don't have to install these deps twice, once for runc and once for dockerd
+# ====================== Runtime-Dev阶段 ======================
 FROM base AS runtime-dev
-RUN apt-get update && apt-get install -y \
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated \
 	libapparmor-dev \
 	libseccomp-dev
 
-
+# ====================== 工具安装阶段 ======================
 FROM base AS tomlv
 ENV INSTALL_BINARY_NAME=tomlv
+RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 FROM base AS vndr
 ENV INSTALL_BINARY_NAME=vndr
+RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 FROM base AS containerd
-RUN apt-get update && apt-get install -y btrfs-tools
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated btrfs-tools
 ENV INSTALL_BINARY_NAME=containerd
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
-FROM base AS proxy
-ENV INSTALL_BINARY_NAME=proxy
-COPY hack/dockerfile/install/install.sh ./install.sh
-COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
-RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+# ====================== 后续其他阶段 ======================
+# 所有基于base的阶段都需要添加以下三行：
+# 1. RUN rm -rf /var/lib/apt/lists/*
+# 2. apt-get update -o Acquire::AllowInsecureRepositories=true
+# 3. apt-get install --allow-unauthenticated
 
-FROM base AS gometalinter
-ENV INSTALL_BINARY_NAME=gometalinter
-COPY hack/dockerfile/install/install.sh ./install.sh
-COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
-RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
-
-FROM base AS dockercli
-ENV INSTALL_BINARY_NAME=dockercli
-COPY hack/dockerfile/install/install.sh ./install.sh
-COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
-RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
-
-FROM runtime-dev AS runc
-ENV INSTALL_BINARY_NAME=runc
-COPY hack/dockerfile/install/install.sh ./install.sh
-COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
-RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
-
-FROM base AS tini
-RUN apt-get update && apt-get install -y cmake vim-common
-COPY hack/dockerfile/install/install.sh ./install.sh
-ENV INSTALL_BINARY_NAME=tini
-COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
-RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
-
-
-
-# TODO: Some of this is only really needed for testing, it would be nice to split this up
+# ====================== 最终Dev环境 ======================
 FROM runtime-dev AS dev
-RUN groupadd -r docker
-RUN useradd --create-home --gid docker unprivilegeduser
-# Let us use a .bashrc file
-RUN ln -sfv /go/src/github.com/docker/docker/.bashrc ~/.bashrc
-# Activate bash completion and include Docker's completion if mounted with DOCKER_BASH_COMPLETION_PATH
-RUN echo "source /usr/share/bash-completion/bash_completion" >> /etc/bash.bashrc
-RUN ln -s /usr/local/completion/bash/docker /etc/bash_completion.d/docker
-RUN ldconfig
-# This should only install packages that are specifically needed for the dev environment and nothing else
-# Do you really need to add another package here? Can it be done in a different build stage?
-RUN apt-get update && apt-get install -y \
+RUN rm -rf /var/lib/apt/lists/*
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated \
 	apparmor \
 	aufs-tools \
 	bash-completion \
@@ -219,6 +160,7 @@ RUN apt-get update && apt-get install -y \
 	bzip2 \
 	xz-utils \
 	--no-install-recommends
+
 COPY --from=swagger /build/swagger* /usr/local/bin/
 COPY --from=frozen-images /build/ /docker-frozen-images
 COPY --from=gometalinter /build/ /usr/local/bin/
