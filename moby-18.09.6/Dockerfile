@@ -173,14 +173,26 @@ COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
-# ====================== runc 阶段 ======================
-FROM base AS runc  
+# ====================== runc 阶段修复 ======================
+FROM base AS runc
 ENV INSTALL_BINARY_NAME=runc
-RUN rm -rf /var/lib/apt/lists/*
+
+# 关键修改：添加 libseccomp-dev 依赖
+RUN rm -rf /var/lib/apt/lists/* \
+	&& apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated \
+	libseccomp-dev \  
+	pkg-config \      
+	build-essential   
+
+# 复制安装脚本并设置权限
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
+
+# 执行安装
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+
 # ====================== 后续其他阶段 ======================
 # 所有基于base的阶段都需要添加以下三行：
 # 1. RUN rm -rf /var/lib/apt/lists/*
