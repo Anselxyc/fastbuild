@@ -146,6 +146,31 @@ COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+# ====================== tini 阶段 ======================
+FROM base AS tini
+RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
+	&& apt-get install -y --allow-unauthenticated cmake vim-common
+COPY hack/dockerfile/install/install.sh ./install.sh
+ENV INSTALL_BINARY_NAME=tini
+COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
+RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+
+# ====================== proxy 阶段 ======================
+FROM base AS proxy
+ENV INSTALL_BINARY_NAME=proxy
+COPY hack/dockerfile/install/install.sh ./install.sh
+COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
+RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+
+# ====================== dockercli 阶段 ======================
+FROM base AS dockercli
+ENV INSTALL_BINARY_NAME=dockercli
+COPY hack/dockerfile/install/install.sh ./install.sh
+COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
+RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 # ====================== 后续其他阶段 ======================
 # 所有基于base的阶段都需要添加以下三行：
 # 1. RUN rm -rf /var/lib/apt/lists/*
