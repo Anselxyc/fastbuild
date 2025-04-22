@@ -171,6 +171,13 @@ COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
+# ====================== runc 阶段 ======================
+FROM base AS runc  
+ENV INSTALL_BINARY_NAME=runc
+COPY hack/dockerfile/install/install.sh ./install.sh
+COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
+RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 # ====================== 后续其他阶段 ======================
 # 所有基于base的阶段都需要添加以下三行：
 # 1. RUN rm -rf /var/lib/apt/lists/*
