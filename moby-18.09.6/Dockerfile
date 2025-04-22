@@ -82,6 +82,8 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
 	&& apt-get install -y --allow-unauthenticated jq ca-certificates
 COPY contrib/download-frozen-image-v2.sh /
+# 添加这行
+RUN chmod +x /download-frozen-image-v2.sh  
 RUN /download-frozen-image-v2.sh /build \
 	buildpack-deps:jessie@sha256:dd86dced7c9cd2a724e779730f0a53f93b7ef42228d4344b25ce9a42a1486251 \
 	busybox:latest@sha256:bbc3a03235220b170ba48a157dd097dd1379299370e1ed99ce976df0355d24f0 \
