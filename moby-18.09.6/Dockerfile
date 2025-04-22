@@ -1,11 +1,13 @@
 # ====================== 基础阶段 ======================
 FROM golang:1.10.8 AS base
 ENV GO_VERSION 1.10.8
-ARG APT_MIRROR=archive.debian.org/debian
-ARG SECURITY_MIRROR=archive.debian.org/debian-security
+# 使用国内镜像加速（阿里云）
+ARG APT_MIRROR=mirrors.aliyun.com/debian
+ARG SECURITY_MIRROR=mirrors.aliyun.com/debian-security
 
-RUN echo "deb [check-valid-until=no] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
-	&& echo "deb [check-valid-until=no] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
+# 彻底重写源配置（关键步骤！）
+RUN echo "deb [trusted=yes allow-insecure=yes] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
+	&& echo "deb [trusted=yes allow-insecure=yes] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
 	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until \
 	&& echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/10-no-auth
 
