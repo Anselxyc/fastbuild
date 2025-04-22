@@ -2,14 +2,20 @@
 FROM golang:1.10.8 AS base
 ENV GO_VERSION 1.10.8
 # 使用国内镜像加速（阿里云）
-ARG APT_MIRROR=mirrors.aliyun.com/debian
-ARG SECURITY_MIRROR=mirrors.aliyun.com/debian-security
+ARG APT_MIRROR=archive.debian.org/debian
+ARG SECURITY_MIRROR=archive.debian.org/debian-security
 
-# 彻底重写源配置（关键步骤！）
-RUN echo "deb [check-valid-until=no allow-insecure=yes] http://${APT_MIRROR} Buster main" > /etc/apt/sources.list \
-	&& echo "deb [check-valid-until=no allow-insecure=yes] http://${SECURITY_MIRROR} Buster main" >> /etc/apt/sources.list \
+
+# 关键修改点1：强制重写APT源配置
+RUN echo "deb [check-valid-until=no allow-insecure=yes] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no allow-insecure=yes] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
 	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until \
 	&& echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/10-no-auth
+
+# 关键修改点2：安装旧版签名密钥
+RUN wget -O /tmp/keyring.deb http://archive.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2017.5_all.deb \
+	&& dpkg -i /tmp/keyring.deb \
+	&& rm /tmp/keyring.deb
 
 # ====================== CRIU阶段 ====================== 
 FROM base AS criu
