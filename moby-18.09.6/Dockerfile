@@ -6,14 +6,14 @@ ARG APT_MIRROR=archive.debian.org/debian
 ARG SECURITY_MIRROR=archive.debian.org/debian-security
 
 
-# 关键修改点1：强制重写APT源配置
+# 关键修改点1：更新密钥包版本
 RUN echo "deb [check-valid-until=no allow-insecure=yes] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
 	&& echo "deb [check-valid-until=no allow-insecure=yes] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
 	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until \
 	&& echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/10-no-auth
 
-# 关键修改点2：安装旧版签名密钥
-RUN wget -O /tmp/keyring.deb http://archive.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2017.5_all.deb \
+# 关键修改点2：使用新版密钥包（2023.3版本）
+RUN wget -O /tmp/keyring.deb http://archive.debian.org/debian/pool/main/d/debian-archive-keyring/debian-archive-keyring_2019.1+deb10u1_all.deb \
 	&& dpkg -i /tmp/keyring.deb \
 	&& rm /tmp/keyring.deb
 
