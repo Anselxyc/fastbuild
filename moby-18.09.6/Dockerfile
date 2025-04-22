@@ -6,8 +6,8 @@ ARG APT_MIRROR=mirrors.aliyun.com/debian
 ARG SECURITY_MIRROR=mirrors.aliyun.com/debian-security
 
 # 彻底重写源配置（关键步骤！）
-RUN echo "deb [trusted=yes allow-insecure=yes] http://${APT_MIRROR} stretch main contrib non-free" > /etc/apt/sources.list \
-	&& echo "deb [trusted=yes allow-insecure=yes] http://${SECURITY_MIRROR} stretch/updates main contrib non-free" >> /etc/apt/sources.list \
+RUN echo "deb [check-valid-until=no allow-insecure=yes] http://${APT_MIRROR} Buster main" > /etc/apt/sources.list \
+	&& echo "deb [check-valid-until=no allow-insecure=yes] http://${SECURITY_MIRROR} Buster main" >> /etc/apt/sources.list \
 	&& echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/10-no-check-valid-until \
 	&& echo 'APT::Get::AllowUnauthenticated "true";' > /etc/apt/apt.conf.d/10-no-auth
 
