@@ -159,6 +159,7 @@ RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 # ====================== proxy 阶段 ======================
 FROM base AS proxy
 ENV INSTALL_BINARY_NAME=proxy
+RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
@@ -167,6 +168,7 @@ RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 # ====================== dockercli 阶段 ======================
 FROM base AS dockercli
 ENV INSTALL_BINARY_NAME=dockercli
+RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
@@ -174,6 +176,7 @@ RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 # ====================== runc 阶段 ======================
 FROM base AS runc  
 ENV INSTALL_BINARY_NAME=runc
+RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
 RUN chmod +x install.sh && chmod +x $INSTALL_BINARY_NAME.installer
