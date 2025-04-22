@@ -111,6 +111,9 @@ ENV INSTALL_BINARY_NAME=tomlv
 RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+# 添加权限设置
+RUN chmod +x install.sh && \
+	chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 FROM base AS vndr
@@ -118,6 +121,9 @@ ENV INSTALL_BINARY_NAME=vndr
 RUN rm -rf /var/lib/apt/lists/*
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+# 添加权限设置
+RUN chmod +x install.sh && \
+	chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 FROM base AS containerd
@@ -127,6 +133,9 @@ RUN apt-get update -o Acquire::AllowInsecureRepositories=true \
 ENV INSTALL_BINARY_NAME=containerd
 COPY hack/dockerfile/install/install.sh ./install.sh
 COPY hack/dockerfile/install/$INSTALL_BINARY_NAME.installer ./
+# 添加权限设置
+RUN chmod +x install.sh && \
+	chmod +x $INSTALL_BINARY_NAME.installer
 RUN PREFIX=/build/ ./install.sh $INSTALL_BINARY_NAME
 
 # ====================== 后续其他阶段 ======================
