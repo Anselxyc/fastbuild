@@ -346,4 +346,5 @@ func main() {
 
 	http.HandleFunc("/", handleIterceptor(httpDefault))
 	http.ListenAndServe(":8080", nil)
+	select {}
 }
