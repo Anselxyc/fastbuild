@@ -1,0 +1,5 @@
+# 用于测试 ubuntu:15.10 镜像的构建时间
+FROM ubuntu:15.10
+
+# 验证镜像是否可用，并产生一个层
+RUN echo "Ubuntu 15.10 build test"

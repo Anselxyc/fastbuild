@@ -1,0 +1,5 @@
+# 用于测试 node:18 镜像的构建时间
+FROM node:18
+
+# 验证镜像是否可用，并产生一个层
+RUN node --version

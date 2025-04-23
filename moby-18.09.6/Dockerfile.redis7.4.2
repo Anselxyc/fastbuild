@@ -1,0 +1,5 @@
+# 用于测试 redis:7.4.2 镜像的构建时间
+FROM redis:7.4.2
+
+# 验证镜像是否可用，并产生一个层
+RUN redis-server --version || true

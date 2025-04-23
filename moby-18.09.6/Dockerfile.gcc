@@ -1,0 +1,5 @@
+# 用于测试 gcc:latest 镜像的构建时间
+FROM gcc:latest
+
+# 验证镜像是否可用，并产生一个层
+RUN gcc --version
