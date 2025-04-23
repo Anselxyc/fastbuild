@@ -1,5 +1,9 @@
-# 用于测试 gcc:latest 镜像的构建时间
+# 用于测试 gcc:latest 镜像在有无 fastbuild 缓存情况下的构建时间
 FROM gcc:latest
 
-# 验证镜像是否可用，并产生一个层
-RUN gcc --version
+# 添加网络下载操作以触发缓存代理
+RUN apt-get update \
+    && apt-get install -y wget \
+    && wget -q https://ftp.gnu.org/gnu/gcc/gcc-10.2.0/gcc-10.2.0.tar.gz \
+    && echo "Downloaded gcc source" \
+    && rm -rf gcc-10.2.0.tar.gz
